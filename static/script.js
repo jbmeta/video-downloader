@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.remove();
                 window.URL.revokeObjectURL(downloadUrl);
 
-                displayMessage(`Download of ${resolution} video initiated. Check your browser's downloads.`, 'info');
+                displayMessage(`Download of ${resolution} video initiated. Check your browser's default downloads folder.`, 'info');
             }
 
         } catch (error) {

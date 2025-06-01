@@ -1,10 +1,11 @@
-from flask import Flask, request, jsonify, send_file, Response
+from flask import Flask, request, jsonify, send_file, Response, after_this_request
 import yt_dlp
 import re
 import os
-import threading
-import json
-import unicodedata # Import unicodedata for better filename sanitization
+import unicodedata
+from datetime import datetime, timedelta
+from flaskwebgui import FlaskUI
+
 
 app = Flask(__name__)
 
@@ -15,6 +16,35 @@ DOWNLOAD_DIR = os.path.join(BASE_DIR, "downloads")
 
 # Create the downloads directory if it doesn't exist
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+# Define a cleanup threshold (e.g., 1 hour for temporary files)
+CLEANUP_THRESHOLD_HOURS = 1
+
+def cleanup_old_files():
+    """
+    Cleans up old files in the DOWNLOAD_DIR that are older than CLEANUP_THRESHOLD_HOURS.
+    This function runs once on app startup.
+    """
+    print(f"Starting cleanup of old files in {DOWNLOAD_DIR} (older than {CLEANUP_THRESHOLD_HOURS} hours)...")
+    now = datetime.now()
+    for f in os.listdir(DOWNLOAD_DIR):
+        full_file_path = os.path.join(DOWNLOAD_DIR, f)
+        # Ensure it's a file and not a directory, and has a recognizable extension
+        if os.path.isfile(full_file_path) and f.endswith(('.mp4', '.m4a', '.webm')): 
+            try:
+                mod_time = datetime.fromtimestamp(os.path.getmtime(full_file_path))
+                if now - mod_time > timedelta(hours=CLEANUP_THRESHOLD_HOURS):
+                    os.remove(full_file_path)
+                    print(f"Removed old temp file: {f}")
+            except OSError as e:
+                print(f"Error removing old temp file {full_file_path}: {e}")
+            except Exception as e:
+                print(f"Unexpected error during cleanup of {full_file_path}: {e}")
+    print("Cleanup finished.")
+
+# Run cleanup on startup
+cleanup_old_files()
+
 
 @app.route('/')
 def index():
@@ -35,7 +65,6 @@ def get_video_info():
     tweet_url = request.json.get('tweet_url')
 
     # Basic URL validation for Twitter/X tweet links
-    # Updated regex to accept both twitter.com and x.com
     if not re.match(r"https?://(?:www\.)?(?:twitter\.com|x\.com)/\w+/status/\d+", tweet_url):
         return jsonify({"error": "Invalid Twitter/X URL. Please provide a direct link to a tweet (e.g., https://x.com/user/status/123...)."}), 400
 
@@ -53,10 +82,6 @@ def get_video_info():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(tweet_url, download=False)
             
-            # --- DEBUGGING AID: Uncomment to print full info dictionary to console ---
-            # print(json.dumps(info, indent=4))
-            # -------------------------------------------------------------------------
-
             if 'formats' not in info:
                 return jsonify({"error": "No video found in this tweet or no downloadable formats recognized."}), 404
 
@@ -90,7 +115,7 @@ def get_video_info():
                         seen_resolutions.add(resolution_str)
 
             if not video_formats_options:
-                 return jsonify({"error": "No downloadable video formats found for this tweet."}), 404
+                    return jsonify({"error": "No downloadable video formats found for this tweet."}), 404
 
             # Helper to extract height for sorting resolutions
             def get_height_from_resolution(res_str):
@@ -162,22 +187,13 @@ def sanitize_filename(text, max_length=150):
 
     return text.strip()
 
-@app.route('/test_download_direct')
-def test_download_direct():
-    test_filepath = os.path.join(app.root_path, DOWNLOAD_DIR, 'test_download.txt')
-    # print(f"Attempting to send direct test file from: {test_filepath}") # Uncomment for server-side debug
-    try:
-        return send_file(test_filepath, as_attachment=True, download_name='my_test_file.txt')
-    except Exception as e:
-        print(f"Error sending test file: {e}")
-        return jsonify({"error": f"Failed to send test file: {str(e)}"}), 500
-
 
 @app.route('/stream_download', methods=['POST'])
 def stream_download():
     """
     Initiates the video download using yt-dlp on the server,
     and then streams the downloaded file back to the client.
+    The temporary file is cleaned up after being sent.
     """
     video_url = request.json.get('video_url')
     resolution = request.json.get('resolution', 'unknown_resolution')
@@ -197,23 +213,20 @@ def stream_download():
     # Construct the final filename for the user download
     final_download_filename = f"{sanitized_filename_base or tweet_id}_{sanitized_resolution}.mp4"
 
-    # --- FIX START ---
-    # The temporary filename used by yt-dlp should also be derived from the meaningful name
-    # We still want a unique component to prevent collisions if multiple downloads happen
+    # Use a unique component to prevent collisions if multiple downloads happen
     # very rapidly for the same tweet/resolution, but the base should be meaningful.
-    unique_id_component = os.urandom(4).hex() # Shorter unique ID for less filename clutter
+    unique_id_component = os.urandom(4).hex() 
     
     # Use the meaningful filename as the base for the temporary file as well
     # This means the file saved to disk will also have a relevant name
     temp_filename_on_disk = f"{sanitized_filename_base or tweet_id}_{sanitized_resolution}_{unique_id_component}.mp4"
     temp_filepath = os.path.join(DOWNLOAD_DIR, temp_filename_on_disk)
-    # --- FIX END ---
 
     # --- DEBUGGING PRINT ---
     print(f"Backend received filename_base (from frontend): '{tweet_filename_base}'")
     print(f"Sanitized filename base: '{sanitized_filename_base}'")
     print(f"Final proposed download filename (for browser): '{final_download_filename}'")
-    print(f"Attempting to download to (on disk): '{temp_filepath}'") # This will now be meaningful
+    print(f"Attempting to download to (on disk): '{temp_filepath}'")
     # --- END DEBUGGING PRINT ---
 
     try:
@@ -231,7 +244,19 @@ def stream_download():
 
         # Flask's send_file uses 'download_name' to tell the browser what to name the file.
         # The file sent is still temp_filepath, but the browser renames it.
-        return send_file(temp_filepath, as_attachment=True, download_name=final_download_filename)
+        response = send_file(temp_filepath, as_attachment=True, download_name=final_download_filename)
+
+        @after_this_request
+        def remove_file(response):
+            try:
+                if os.path.exists(temp_filepath):
+                    os.remove(temp_filepath)
+                    print(f"Cleaned up temp file after sending: {temp_filepath}")
+            except Exception as e:
+                print(f"Error cleaning up {temp_filepath} after sending: {e}")
+            return response
+
+        return response
 
     except yt_dlp.DownloadError as e:
         print(f"YT-DLP Error during download: {e}")
@@ -247,17 +272,21 @@ def stream_download():
 
 if __name__ == '__main__':
     print(f"Cleaning up old temporary files in {DOWNLOAD_DIR}...")
-    for f in os.listdir(DOWNLOAD_DIR): # os.listdir will correctly list contents of the absolute DOWNLOAD_DIR
-        # Ensure we're only deleting the temporary files created by the app
-        if f.endswith('.mp4'): # Add .mp4 to be more specific
-            full_file_path = os.path.join(DOWNLOAD_DIR, f) # Now this join uses the absolute DOWNLOAD_DIR
-            try:
-                os.remove(full_file_path)
-                print(f"Removed old temp file: {f}")
-            except OSError as e:
-                # Log the error more verbosely to help diagnose permissions or other issues
-                print(f"Error removing old temp file {full_file_path}: {e}")
-            except Exception as e: # Catch any other unexpected errors
-                print(f"Unexpected error removing {full_file_path}: {e}")
-    
-    app.run(debug=True, host='0.0.0.0')
+    cleanup_old_files() # Call the dedicated cleanup function
+
+    # Initialize FlaskUI with your desired settings
+    gui = FlaskUI(
+        app=app,
+        server='flask',
+        width=800,
+        height=700,
+        fullscreen=False,
+        browser_path=None, # Let FlaskUI discover the browser (recommended)
+        # If you want to use a specific browser (e.g., if you have it installed in a custom path):
+        # browser_path="C:/Program Files/Google/Chrome/Application/chrome.exe",
+
+    )
+
+    # gui.run() will start the Flask server in a separate thread and then open the GUI window.
+    gui.run()
+    # app.run(debug=True, host='0.0.0.0')
