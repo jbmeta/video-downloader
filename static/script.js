@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadOptionsDiv = document.getElementById('downloadOptions');
     const resolutionListDiv = document.getElementById('resolutionList');
 
+    let currentTweetTitle = ''; // Variable to store the tweet title
+    let currentUploader = '';   // Variable to store the uploader
+
     getVideoBtn.addEventListener('click', async () => {
         const tweetUrl = tweetUrlInput.value.trim();
         if (!tweetUrl) {
@@ -37,12 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (!response.ok) {
-                // Display error message from backend
                 displayMessage(data.error || 'Failed to get video information.', 'error');
                 return;
             }
 
             if (data.formats && data.formats.length > 0) {
+                currentTweetTitle = data.tweet_title || ''; // Store the fetched tweet title
+                currentUploader = data.uploader || '';     // Store the fetched uploader
                 displayDownloadOptions(data.formats);
             } else {
                 displayMessage('No downloadable videos found for this tweet.', 'error');
@@ -103,8 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const downloadButton = document.createElement('button');
             downloadButton.textContent = 'Download';
-            // Call the new initiateStreamDownload function when button is clicked
-            downloadButton.addEventListener('click', () => initiateStreamDownload(format.url, format.resolution));
+            // Pass the currentTweetTitle to the download function
+            downloadButton.addEventListener('click', () => initiateStreamDownload(format.url, format.resolution, currentTweetTitle));
 
             item.appendChild(info);
             item.appendChild(downloadButton);
@@ -113,10 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadOptionsDiv.classList.remove('hidden');
     }
 
-    // Function to initiate the streaming download via the backend
-    async function initiateStreamDownload(videoUrl, resolution) {
+    // Updated function signature to accept filename_base
+    async function initiateStreamDownload(videoUrl, resolution, filenameBase) {
         displayMessage(`Preparing to download ${resolution} video... This may take a moment.`, 'info');
-        showLoading(); // Show loading indicator during the download preparation
+        showLoading();
 
         try {
             const response = await fetch('/stream_download', {
@@ -124,8 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                // Send the video URL and resolution to the backend
-                body: JSON.stringify({ video_url: videoUrl, resolution: resolution })
+                // Send the filename_base along with video_url and resolution
+                body: JSON.stringify({
+                    video_url: videoUrl,
+                    resolution: resolution,
+                    filename_base: filenameBase // Send the tweet title here
+                })
             });
 
             if (!response.ok) {
@@ -142,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error during streaming download:', error);
             displayMessage('An error occurred during download. Please check your network or try again.', 'error');
         } finally {
-            hideLoading(); // Hide loading indicator regardless of success or failure
+            hideLoading();
         }
     }
 });
