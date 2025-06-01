@@ -26,8 +26,8 @@ Before you begin, ensure you have the following installed:
 1.  **Clone the Repository (or Download the Code):**
     If you're using Git:
     ```bash
-    git clone [https://github.com/jbmeta/VideoDownloader.git](https://github.com/jbmeta/VideoDownloader.git)
-    cd VideoDownloader
+    git clone https://github.com/jbmeta/video-downloader.git
+    cd video-downloader
     ```
     If you downloaded a ZIP file, extract it and navigate into the project directory.
 
