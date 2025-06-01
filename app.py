@@ -8,7 +8,11 @@ import unicodedata # Import unicodedata for better filename sanitization
 
 app = Flask(__name__)
 
-DOWNLOAD_DIR = "downloads"
+# Define DOWNLOAD_DIR as an absolute path
+# This ensures it's always relative to the script's location, not the CWD
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DOWNLOAD_DIR = os.path.join(BASE_DIR, "downloads")
+
 # Create the downloads directory if it doesn't exist
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
@@ -158,7 +162,15 @@ def sanitize_filename(text, max_length=150):
 
     return text.strip()
 
-
+@app.route('/test_download_direct')
+def test_download_direct():
+    test_filepath = os.path.join(app.root_path, DOWNLOAD_DIR, 'test_download.txt')
+    # print(f"Attempting to send direct test file from: {test_filepath}") # Uncomment for server-side debug
+    try:
+        return send_file(test_filepath, as_attachment=True, download_name='my_test_file.txt')
+    except Exception as e:
+        print(f"Error sending test file: {e}")
+        return jsonify({"error": f"Failed to send test file: {str(e)}"}), 500
 
 
 @app.route('/stream_download', methods=['POST'])
@@ -234,13 +246,18 @@ def stream_download():
 
 
 if __name__ == '__main__':
-    # print(f"Cleaning up old temporary files in {DOWNLOAD_DIR}...")
-    # for f in os.listdir(DOWNLOAD_DIR):
-    #     if f.startswith('dl_temp_'):
-    #         try:
-    #             os.remove(os.path.join(DOWNLOAD_DIR, f))
-    #             print(f"Removed old temp file: {f}")
-    #         except OSError as e:
-    #             print(f"Error removing old temp file {f}: {e}")
+    print(f"Cleaning up old temporary files in {DOWNLOAD_DIR}...")
+    for f in os.listdir(DOWNLOAD_DIR): # os.listdir will correctly list contents of the absolute DOWNLOAD_DIR
+        # Ensure we're only deleting the temporary files created by the app
+        if f.endswith('.mp4'): # Add .mp4 to be more specific
+            full_file_path = os.path.join(DOWNLOAD_DIR, f) # Now this join uses the absolute DOWNLOAD_DIR
+            try:
+                os.remove(full_file_path)
+                print(f"Removed old temp file: {f}")
+            except OSError as e:
+                # Log the error more verbosely to help diagnose permissions or other issues
+                print(f"Error removing old temp file {full_file_path}: {e}")
+            except Exception as e: # Catch any other unexpected errors
+                print(f"Unexpected error removing {full_file_path}: {e}")
     
     app.run(debug=True, host='0.0.0.0')
