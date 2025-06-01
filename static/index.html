@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Local Twitter/X Video Downloader</title>
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
 </head>
 <body>
     <div class="container">
@@ -14,7 +14,8 @@
             <input type="text" id="tweetUrl" placeholder="Enter Twitter/X Tweet URL">
             <button id="getVideoBtn">Get Video</button>
         </div>
-        <div id="loading" class="hidden">Loading video info...</div>
+        <div id="loading" class="hidden">
+            <div class="spinner"></div> <span id="loadingMessage">Loading video info...</span> </div>
         <div id="errorMessage" class="error-message hidden"></div>
         <div id="downloadOptions" class="hidden">
             <h2>Download Options:</h2>
