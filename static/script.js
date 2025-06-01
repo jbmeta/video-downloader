@@ -141,8 +141,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 const errorData = await response.json();
                 displayMessage(errorData.error || 'Failed to initiate download.', 'error');
             } else {
-                // If response is OK, it means the server is sending the file.
-                // The browser will automatically handle the download based on Content-Disposition headers.
+                // The fetch request was successful. Now, trigger the browser download.
+                // fetch doesn't automatically trigger a download, even with Content-Disposition headers.
+                // We need to create a Blob from the response and then create a temporary URL for it.
+
+                const blob = await response.blob(); // Get the response body as a Blob
+                const downloadUrl = window.URL.createObjectURL(blob); // Create a temporary URL for the Blob
+
+                const a = document.createElement('a'); // Create a temporary anchor element
+                a.href = downloadUrl; // Set its href to the Blob URL
+
+                // Extract filename from Content-Disposition header if available, otherwise use fallback
+                let suggestedFileName = `${filenameBase}_${resolution}.mp4`; // Fallback name
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?$/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        suggestedFileName = filenameMatch[1];
+                    }
+                }
+                a.download = suggestedFileName; // Set the download attribute with the suggested filename
+
+                document.body.appendChild(a); // Append the anchor to the body (necessary for .click() to work in some browsers)
+                a.click(); // Programmatically click the anchor to trigger download
+                document.body.removeChild(a); // Clean up the temporary anchor
+                window.URL.revokeObjectURL(downloadUrl); // Revoke the temporary URL to free up memory
+
                 displayMessage(`Download of ${resolution} video initiated. Check your browser's downloads.`, 'info');
             }
 
