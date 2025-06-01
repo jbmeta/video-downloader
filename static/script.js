@@ -9,13 +9,15 @@ document.addEventListener('DOMContentLoaded', () => {
     getVideoBtn.addEventListener('click', async () => {
         const tweetUrl = tweetUrlInput.value.trim();
         if (!tweetUrl) {
-            displayMessage('Please enter a X URL.', 'error');
+            displayMessage('Please enter a Twitter/X URL.', 'error');
             return;
         }
 
-        const xUrlPattern = /https?:\/\/(?:www\.)?x\.com\/\w+\/status\/\d+/;
-        if (!xUrlPattern.test(tweetUrl)) {
-            displayMessage('Invalid X URL format. Please use a link like "https://x.com/user/status/123456789".', 'error');
+        // Client-side URL validation for Twitter/X tweet links
+        // Updated regex to accept both twitter.com and x.com
+        const twitterUrlPattern = /https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/\w+\/status\/\d+/;
+        if (!twitterUrlPattern.test(tweetUrl)) {
+            displayMessage('Invalid Twitter/X URL format. Please use a link like "https://x.com/user/status/123456789" or "https://twitter.com/user/status/123456789".', 'error');
             return;
         }
 
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (!response.ok) {
+                // Display error message from backend
                 displayMessage(data.error || 'Failed to get video information.', 'error');
                 return;
             }
@@ -46,8 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (error) {
-            console.error('Error:', error);
-            displayMessage('An error occurred while fetching video information. Please try again.', 'error');
+            console.error('Error fetching video info:', error);
+            displayMessage('An error occurred while fetching video information. Please check your network or try again.', 'error');
         } finally {
             hideLoading();
         }
@@ -73,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMessageDiv.style.backgroundColor = '#f2dede';
             errorMessageDiv.style.borderColor = '#ebccd1';
             errorMessageDiv.style.color = '#d9534f';
-        } else {
+        } else { // info message
             errorMessageDiv.style.backgroundColor = '#dff0d8';
             errorMessageDiv.style.borderColor = '#d6e9c6';
             errorMessageDiv.style.color = '#3c763d';
@@ -82,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideDownloadOptions() {
         downloadOptionsDiv.classList.add('hidden');
-        resolutionListDiv.innerHTML = '';
+        resolutionListDiv.innerHTML = ''; // Clear previous options
     }
 
     function displayDownloadOptions(formats) {
@@ -92,15 +95,16 @@ document.addEventListener('DOMContentLoaded', () => {
             item.classList.add('resolution-item');
 
             const info = document.createElement('span');
+            // Calculate file size in MB, or 'N/A' if unknown
             const fileSizeMB = format.filesize ? (format.filesize / (1024 * 1024)).toFixed(2) : 'N/A';
             info.classList.add('resolution-info');
-            // Make sure this line is exactly as below:
+            // Correctly display resolution and file size (ensure no extra '$' characters here)
             info.textContent = `${format.resolution} (${fileSizeMB} MB)`;
-
 
             const downloadButton = document.createElement('button');
             downloadButton.textContent = 'Download';
-            downloadButton.addEventListener('click', () => initiateDownload(format.url, format.resolution));
+            // Call the new initiateStreamDownload function when button is clicked
+            downloadButton.addEventListener('click', () => initiateStreamDownload(format.url, format.resolution));
 
             item.appendChild(info);
             item.appendChild(downloadButton);
@@ -109,16 +113,36 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadOptionsDiv.classList.remove('hidden');
     }
 
-    async function initiateDownload(videoUrl, resolution) {
-        displayMessage(`Downloading ${resolution} video... This may take a moment.`, 'info');
+    // Function to initiate the streaming download via the backend
+    async function initiateStreamDownload(videoUrl, resolution) {
+        displayMessage(`Preparing to download ${resolution} video... This may take a moment.`, 'info');
+        showLoading(); // Show loading indicator during the download preparation
+
         try {
-            // For direct browser download, we'll open the URL in a new tab/window
-            // The Flask backend will handle the actual streaming of the file
-            window.open(videoUrl, '_blank');
-            displayMessage('Download should start in a new tab/window. Check your browser downloads.', 'info');
+            const response = await fetch('/stream_download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                // Send the video URL and resolution to the backend
+                body: JSON.stringify({ video_url: videoUrl, resolution: resolution })
+            });
+
+            if (!response.ok) {
+                // If the backend returns an error (e.g., 500 status), parse the JSON error
+                const errorData = await response.json();
+                displayMessage(errorData.error || 'Failed to initiate download.', 'error');
+            } else {
+                // If response is OK, it means the server is sending the file.
+                // The browser will automatically handle the download based on Content-Disposition headers.
+                displayMessage(`Download of ${resolution} video initiated. Check your browser's downloads.`, 'info');
+            }
+
         } catch (error) {
-            console.error('Error initiating download:', error);
-            displayMessage('Failed to initiate download. Please try again.', 'error');
+            console.error('Error during streaming download:', error);
+            displayMessage('An error occurred during download. Please check your network or try again.', 'error');
+        } finally {
+            hideLoading(); // Hide loading indicator regardless of success or failure
         }
     }
 });
