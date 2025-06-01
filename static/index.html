@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Twitter Video Downloader</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Twitter Video Downloader</h1>
+        <div class="input-section">
+            <input type="text" id="tweetUrl" placeholder="Enter Twitter Tweet URL">
+            <button id="getVideoBtn">Get Video</button>
+        </div>
+        <div id="loading" class="hidden">Loading video info...</div>
+        <div id="errorMessage" class="error-message hidden"></div>
+        <div id="downloadOptions" class="hidden">
+            <h2>Download Options:</h2>
+            <div id="resolutionList">
+                </div>
+        </div>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>
