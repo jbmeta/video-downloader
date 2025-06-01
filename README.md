@@ -1,153 +1,136 @@
-# Video Downloader
+# VideoDownloader
 
-![Python Version](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
-
-A simple, user-friendly desktop application built with Flask and FlaskUI to download videos from Twitter (now X.com) directly to your computer. Just paste a tweet URL, select your desired resolution, and download!
+A simple, standalone desktop application built with Flask and FlaskUI for downloading videos from Twitter/X.
 
 ## ✨ Features
 
-* **Clean and Intuitive UI:** Easy-to-use interface for quick video downloads.
-* **Twitter/X.com Support:** Downloads videos directly from tweet URLs.
-* **Resolution Selection:** Choose from available video resolutions.
-* **Automatic Cleanup:** Temporarily downloaded files are automatically cleaned up after streaming to the user.
-* **Standalone Executable:** Package the application into a single executable file for easy distribution and use without Python installation.
-* **Custom Icon:** Brand your application with a custom icon for both the executable and the application window.
+* Download videos from valid Twitter/X tweet URLs.
+* Choose from available video resolutions.
+* Automatically cleans up temporary download files after use.
+* Packaged as a single executable for easy distribution on Windows.
 
-## 📸 Screenshots (Optional)
+## 🚀 Getting Started
 
-_Once your application is built, consider adding a screenshot here to give users a visual idea of what it looks like._
-_Example:_
-![Application Screenshot](screenshots/app_screenshot.png)
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes, or to create an executable.
 
-## 📦 Prerequisites
+### Prerequisites
 
-Before you begin, ensure you have the following installed on your system:
+Before you begin, ensure you have the following installed:
 
 * **Python 3.8 or higher:**
     * Download from: [python.org](https://www.python.org/downloads/)
-    * Make sure to check "Add Python to PATH" during installation.
-* **pip:** Python's package installer (usually comes with Python).
+    * It's recommended to add Python to your system's PATH during installation.
 
-## 🚀 Installation
+### Installation
 
-Follow these steps to get the project up and running on your local machine.
-
-1.  **Clone the repository (or download the code):**
+1.  **Clone the Repository (or Download the Code):**
+    If you're using Git:
     ```bash
-    git clone [https://github.com/your-username/video-downloader.git](https://github.com/your-username/video-downloader.git)
-    # Or download the ZIP from GitHub and extract it
+    git clone [https://github.com/jbmeta/VideoDownloader.git](https://github.com/jbmeta/VideoDownloader.git)
+    cd VideoDownloader
     ```
+    If you downloaded a ZIP file, extract it and navigate into the project directory.
 
-2.  **Navigate into the project directory:**
-    ```bash
-    cd video-downloader
-    ```
-
-3.  **Create a Virtual Environment (Recommended):**
-    A virtual environment isolates your project's dependencies from other Python projects.
+2.  **Create a Virtual Environment (Recommended):**
+    It's good practice to create a virtual environment to manage dependencies for your project.
     ```bash
     python -m venv .venv
     ```
 
-4.  **Activate the Virtual Environment:**
-    * **Windows:**
+3.  **Activate the Virtual Environment:**
+    * **On Windows:**
         ```bash
         .venv\Scripts\activate
         ```
-    * **macOS / Linux:**
+    * **On macOS/Linux:**
         ```bash
         source .venv/bin/activate
         ```
-    (You'll see `(.venv)` prepended to your command prompt, indicating the virtual environment is active.)
+    (You'll see `(.venv)` appear in your terminal prompt, indicating the virtual environment is active.)
 
-5.  **Install Project Dependencies:**
-    This command will install all required libraries listed in `requirements.txt`.
+4.  **Install Dependencies:**
+    First, create a `requirements.txt` file in your project's root directory with the following content:
+
+    ```
+    Flask
+    FlaskUI
+    yt-dlp
+    ```
+
+    Then, install them using pip:
     ```bash
     pip install -r requirements.txt
     ```
 
-## 🛠️ Usage
+### ▶️ Usage (Local Execution)
 
-### Running the Application Locally (for development/testing)
+To run the application locally without creating an executable:
 
-1.  **Activate your virtual environment** (if not already active, see step 4 in Installation).
+1.  **Activate your virtual environment** (if not already active, see "Installation" step 3).
 2.  **Run the Flask application:**
     ```bash
     python app.py
     ```
-3.  The application window should appear, and you can interact with it. You can close the console window that appears (if you opened it separately), but the application window needs the Python process running in the background.
+3.  A desktop window titled "Twitter/X Video Downloader" should open, displaying the application's interface.
+4.  Enter a valid Twitter/X tweet URL (e.g., `https://x.com/user/status/1234567890`) into the text box, click "Get Info," choose a resolution, and click "Download."
 
-### Building a Standalone Executable (for distribution)
+### 📦 Creating an Executable (for Windows)
 
-You can package your application into a single executable file using PyInstaller, so others can run it without installing Python or dependencies.
+You can package your application into a single executable file for easy distribution on Windows, using PyInstaller.
 
-1.  **Prepare your icon file:**
-    * Ensure you have your desired application icon saved as an `.ico` file (e.g., `app_icon.ico`).
-    * Place this `app_icon.ico` file in the **root directory** of your project (where `app.py` is located).
+1.  **Install PyInstaller:**
+    Make sure your virtual environment is active, then install PyInstaller:
+    ```bash
+    pip install pyinstaller
+    ```
 
-2.  **Clean previous PyInstaller builds (CRUCIAL!):**
-    It's vital to clear old build artifacts to ensure new changes (like the icon or executable name) are applied.
+2.  **Prepare Your Application Icon:**
+    * Obtain an icon file in **`.ico` format** (e.g., `app_icon.ico`).
+    * Place this `app_icon.ico` file directly in the **root directory of your project**, next to `app.py`.
+
+3.  **Clean Previous Builds (Crucial!):**
+    Before packaging, always ensure you remove any old build artifacts to prevent issues:
     * Delete the `build` folder.
     * Delete the `dist` folder.
-    * Delete the `VideoDownloader.spec` file (if it exists).
+    * Delete the `VideoDownloader.spec` file (or `app.spec` if it existed from previous builds).
 
-3.  **Run the PyInstaller command:**
-    (Ensure your virtual environment is active)
+4.  **Run the PyInstaller Command:**
+    Execute the following command in your project's root directory:
     ```bash
     pyinstaller --noconsole --onefile --add-data "static;static" --add-data "app_icon.ico;." --collect-all flask_ui --icon "app_icon.ico" --name "VideoDownloader" app.py
     ```
-    * `--noconsole`: Prevents a console window from appearing when the app runs.
-    * `--onefile`: Packages everything into a single executable file.
-    * `--add-data "static;static"`: Includes your `static` folder (CSS, JS) in the bundled app.
-    * `--add-data "app_icon.ico;."`: Includes your icon file in the bundled app's temporary directory.
-    * `--collect-all flask_ui`: Ensures all necessary parts of the `FlaskUI` library are included.
-    * `--icon "app_icon.ico"`: Sets `app_icon.ico` as the icon for the generated `.exe` file.
-    * `--name "VideoDownloader"`: Sets the name of the output executable to `VideoDownloader.exe`.
+    * `--noconsole`: Prevents a black console window from appearing when the app runs.
+    * `--onefile`: Packages everything into a single `.exe` file.
+    * `--add-data "static;static"`: Includes your `static` folder (CSS, JS) in the build.
+    * `--add-data "app_icon.ico;."`: Includes your icon file in the bundled application.
+    * `--collect-all flask_ui`: Ensures all necessary components of `FlaskUI` are bundled.
+    * `--icon "app_icon.ico"`: Sets the icon for the generated `VideoDownloader.exe` file.
+    * `--name "VideoDownloader"`: Specifies the name of the output executable.
 
-4.  **Find your executable:**
-    After the process completes, your `VideoDownloader.exe` (or whatever name you chose) will be located in the `dist/` directory. You can now run this file directly.
-
-## 📁 Project Structure
-
-video-downloader/
-├── .venv/                   # Python virtual environment
-├── app.py                   # Main Flask application logic
-├── requirements.txt         # List of Python dependencies
-├── index.html               # Main UI page
-├── static/                  # Contains CSS and JS for the frontend
-│   ├── style.css
-│   └── script.js
-├── downloads/               # Directory for temporary video files (cleaned up)
-├── app_icon.ico             # Your application icon file
-├── build/                   # PyInstaller temporary build files (ignored by Git)
-└── dist/                    # Output directory for the executable (ignored by Git)
-└── VideoDownloader.spec     # PyInstaller build specification file (ignored by Git)
-
+5.  **Find Your Executable:**
+    Once PyInstaller completes, your executable will be located in the `dist/` folder, named `VideoDownloader.exe`.
 
 ## ⚠️ Troubleshooting
 
 * **`ImportError: cannot import name 'FlaskWebGui' from 'flaskwebgui'`:**
-    This specific error means there's an issue with how `flaskwebgui` is installed or structured on your system. This project uses `FlaskUI` instead, which is more reliable. Ensure you have `FlaskUI` installed (`pip install FlaskUI`) and `from flask_ui import FlaskUI` in `app.py`.
-* **Application starts but no window appears (when running executable):**
-    * **Check for `app.run()`:** Make sure you are calling `ui.run()` and **NOT** `app.run()` inside the `if __name__ == '__main__':` block in `app.py`. `FlaskUI` handles starting the Flask server internally.
-    * **Temporarily remove `--noconsole`:** Rebuild the executable without the `--noconsole` flag to see if any error messages appear in the console window when the app starts. This often reveals hidden issues (e.g., browser not found).
-    * **Specify `browser_path`:** If no errors show, try explicitly setting the `browser_path` in `FlaskUI` constructor in `app.py` (e.g., `browser_path="C:/Program Files/Google/Chrome/Application/chrome.exe"`).
-* **Download fails:**
-    * Check your internet connection.
-    * Ensure the tweet URL is publicly accessible and contains a video.
-    * Check the console for `yt-dlp` errors (when running locally or without `--noconsole`).
-    * Ensure `yt-dlp` is up-to-date (`pip install --upgrade yt-dlp`).
+    This specific error indicates a problem with the `flaskwebgui` library's import structure or installation. Ensure you have correctly `pip install FlaskUI` and that your `app.py` uses `from flask_ui import FlaskUI`.
+* **Application starts but no window appears (from executable):**
+    * **Check `app.run()` vs `ui.run()`:** Ensure you have *removed* any `app.run()` calls and are exclusively using `ui.run()` within your `if __name__ == '__main__':` block.
+    * **Try without `--noconsole`:** Temporarily remove `--noconsole` from your PyInstaller command. If a console window appears with errors, that's your clue.
+    * **Specify `browser_path`:** If no errors appear, `FlaskUI` might not be finding your browser. In `app.py`, try adding `browser_path="C:/Path/To/Your/Browser/chrome.exe"` to your `FlaskUI` constructor. Remember to use forward slashes for paths in Python.
+* **"Video Not Found" or "Download Error":**
+    * Ensure the Twitter/X URL is a direct link to a tweet, not a user profile or other page.
+    * The video might be private, geo-restricted, or removed.
+    * Your internet connection might be unstable.
 
-## 🔮 Recommendations for Further Enhancements
+## 💡 Suggestions for Future Enhancements
 
-* **Error Reporting in UI:** Provide better visual feedback for download errors or invalid URLs directly in the application's user interface.
-* **Download Progress:** Implement a way to show download progress within the UI.
-* **Download Location Selection:** Allow users to choose their download directory instead of a fixed `downloads/` folder.
-* **Notifications:** Add desktop notifications for download completion or failure.
-* **Clipboard Monitoring (Optional Revisit):** As discussed, automate downloads by monitoring the clipboard for tweet URLs.
-* **Video Playback:** Integrate a simple video player to preview downloaded content.
+* **Download Progress Bar:** Implement real-time progress updates in the UI.
+* **Download Queue:** Allow users to add multiple videos to a download queue.
+* **Settings Page:** Add options for default download directory, preferred resolution, etc.
+* **Error Reporting in UI:** Display more user-friendly error messages directly in the application's interface.
+* **Cross-platform support:** Test and refine PyInstaller commands for macOS and Linux.
 
-## 📄 License
+## 🤝 Contributing
 
-This project is licensed under the MIT License - see the `LICENSE` file for details (you might need to create this file if you don't have one).
+If you'd like to contribute to this project, feel free to fork the repository, make your changes, and submit a pull request.
